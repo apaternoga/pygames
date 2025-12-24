@@ -1,0 +1,48 @@
+==== PRZEWODNIK PO PROJEKCIE ====
+No! Wreszcie wziales sie za projekt! Super, ale i tak pewnie nie wiesz co sie tutaj dzieje. Tyle plikow, jakies dzikie nazwy, no moze przytloczyc. 
+Dlatego w tym pliku po krotce wytlumacze Ci co masz robic i co robia poszczegolne pliki.
+
+1. JAK ZACZAC?
+------------------------
+1. Nie zaskocze jak powiem, ze przydaloby sie zrobic git clone https://github.com/apaternoga/pygames.git.
+2. Otworz terminal w folderze projektu i wpisz: "pip install -r requirements.txt". Po co? A no wpisujac te polecenie zainstalujesz wszystkie potrzebne biblioteki, aby wszystko smigalo na twoim kompie. Oceniajacy nasza prace tez bedzie musial to zrobic.
+3. Wpisujac "python main.py" w terminalu powinno ci sie pojawic nasze dzielo.
+
+2. OPIS STRUKTURY FOLDEROW (GDZIE CO JEST? CO TO ROBI?)
+------------------------
+
+/assets
+    TU WRZUCAMY GRAFIKI I DZWIEKI
+    Uzywajcie nazw zrozumialych dla reszty temu, bez spacji, z malej litery.
+    ZLE: "pic 3.png"
+    DOBRZE: "ace_spades.png"
+    Gramy zespolo to nie komplikumy sobie roboty, wpisanie poprawnej nazwy zajmnie wam kilka sekund wiecej, a oszczedzi nieprzyjemnosci.
+
+/core
+    SILNIK GRY (tak profesjonalnie)
+    - settings.py: Tutaj beda stale takie jak szerokosc ekranu, kolory, FPS itd.
+    - lepiej nie dotykac innych plikow w tym folderze jak nie wiesz co robia.
+    - dla ciekawskich __init__.py to pusty plik, dzieki ktoremu Python widzi ten folder jako pakiet (spoko tez za bardzo nie kumam).
+
+/games
+    TU POWSTAJA GRY
+    - template.py: Jak sama nazwa mowi to jest szablon dla kolejnych gier. Nie edytuj go!
+    - Chcesz zaczac nowa gre? Skopiuj template.py, wklej obok i zmien nazwe na mojagra.py czy cos, voila!
+
+main.py
+    PLIK STARTOWY
+    - On uruchamia okno gry.
+    - Nie pisz tutaj swojej logiki gry - tutaj ja tylko importujemy.
+
+requirements.txt
+    LISTA WYMAGANYCH BIBLIOTEK
+    - Jesli uzyjesz nowej biblioteki (innej niz pygame), dopisz ja tutaj, zeby u innych tez wszystko dzialalo.
+
+CREDITS.txt
+    ZRODLA
+    - Musimy podawac wszystkie zrodla i autora. To wazne dla prowadzacego. Wpisujcie je tutaj.
+
+.gitingnore
+    DBA O PORZADEK
+    - Lista plikow ktore git ma ignorowac, dzieki temu nie beda wrzucane smieci z twojego kompa na repo.
+

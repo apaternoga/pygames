@@ -1,0 +1,22 @@
+# Python - pliki tymczasowe i kompilacji
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Srodowiska wirtualne
+venv/
+env/
+.env
+
+# Ustawienia edytorow
+.idea/
+.vscode/
+*.swp
+
+# Systemowe smieci
+.DS_Store
+Thumbs.db
+
+# Logi i bazy danych (tego nawet prawdobodnie nie trzeba ale na wrazie napisze)
+*.log 
+*.sqlite3

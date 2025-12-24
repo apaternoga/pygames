@@ -1,0 +1,16 @@
+# Ustawienia ekranu
+SCREEN_WIDTH= 1280
+SCREEN_HEIGHT = 720
+FPS = 60
+CAPTION = "Pygames - Team 9"
+
+# Kolory (R,G,B)
+WHITE=(255,255,255)
+BLACK = (0,0,0)
+RED= (255,0,0)
+GREEN= (0,255,0)
+BLUE=(0,0,255)
+GOLD= (255,215,0)
+
+# Ustawienia gry
+STARTING_MONEY= 1000
