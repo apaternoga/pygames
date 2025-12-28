@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Srodowiska wirtualne
+.venv/
 venv/
 env/
 .env
