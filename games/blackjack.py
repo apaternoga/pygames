@@ -165,7 +165,19 @@ class BlackjackGame:
         #zmian stanu gry na ruch gracza
         self.state='player_turn'
         self.message="Twoj ruch: HIT(H) lub STAND(S)"
-        
+
+        #NOWA LOGIKA "Natural Blackjack"
+        #Sprawdzam czy gracz ma 21 z rozdania
+        if self.player_hand.value==21:
+            if self.dealer_hand.value==21:
+                self.message= "REMIS (Obaj maja Blackjacka). Zwrot stawki."
+                self.chips+=self.current_bet
+            else:
+                #wygrana 3:2
+                win_amount=int(self.current_bet*2.5)
+                self.message=f"BLACKJACK! Wygrywasz {win_amount-self.current_bet}$!" 
+                self.chips+=win_amount
+            self.state='game_over'
     #funkcja odpowiadajaca za wcisniecia klawiszy
     def handle_input(self,event):
         #poczatek gry, gracz zaklada sie wciskac dowolny klawisz
@@ -176,6 +188,7 @@ class BlackjackGame:
         #ruch gracza dobiera (HIT) lub nie dobiera(STAY)
         elif self.state == 'player_turn':
             if event.type == pygame.KEYDOWN:
+
                 if event.key==pygame.K_h:#jesli gracz kliknie h dodajemy mu karte do reki i sprawdzamy czy przekroczyl wartosc 21
                     self.player_hand.add_card(self.deck.deal())
                     if self.player_hand.value >21:
@@ -185,6 +198,23 @@ class BlackjackGame:
                 elif event.key== pygame.K_s:#jesli s dobieramy karte dealerowi
                     self.state= 'dealer_turn'
                     self.dealer_logic()
+                
+                #NOWA LOGIKA "DOUBLE DOWN"
+                elif event.key==pygame.K_d:
+                    #Podwoic moznatylko wtedy kiedy masz wystarczajaco srodkow i tylko przy dwoch pierwszych kartach
+                    if self.chips>= self.current_bet and len(self.player_hand.cards)==2:
+                        self.chips -= self.current_bet
+                        self.current_bet*=2
+                        self.player_hand.add_card(self.deck.deal())
+
+                        if self.player_hand.value>21:
+                            self.state= 'game_over'
+                            self.message= f"Double Down nieudany! Strata {self.current_bet}."
+                        else:
+                            self.state='dealer_turn'
+                            self.dealer_logic()
+                    else:
+                        self.message= "Nie mozesz podwoic (brak srodkow lub zly moment)"
         
         #to odpowiada za "kliknij spacje zeby zaczac ponownie"
         elif self.state == 'game_over':
@@ -198,21 +228,25 @@ class BlackjackGame:
     #logika dealera
     def dealer_logic(self):
         #dealer dobiera karty dopoki ma mniej niz 17 pkt
-        while self.dealer_hand.value<17:
+        #NOWA LOGIKA "Soft 17"
+        #Soft 17 czyli kiedy dealer ma 17 ale liczony z asem
+        while self.dealer_hand.value<17 or (self.dealer_hand.value==17 and self.dealer_hand.aces>0):
             self.dealer_hand.add_card(self.deck.deal())
 
         #sprawdzanie warunkow wygranej
         if self.dealer_hand.value>21:
-            self.message= "Dealer ma FURE! Wygrales! +20 monet"
-            self.chips+=20
+            win=self.current_bet*2
+            self.message= f"Dealer ma FURE! Wygrales {win-self.current_bet}$!"
+            self.chips+=win
         elif self.dealer_hand.value<self.player_hand.value:
-            self.message= "Wygrales! +20 monet"
-            self.chips+=20
+            win=self.current_bet*2
+            self.message= f"Wygrales {win-self.current_bet}$."
+            self.chips+=win
         elif self.dealer_hand.value>self.player_hand.value:
-            self.message="Dealer wygrywa. Sprobuj ponownie."
+            self.message="Dealer wygrywa. Tracisz stawke."
         else:
-            self.message= "REMIS. Zwrot stawki +10 monet"
-            self.chips +=10
+            self.message= "REMIS. Zwrot stawki"
+            self.chips+=self.current_bet
         self.state= "game_over"
 
     #funkcja renderujaca - rysuje ona wszystko na ekranie w kazdej klatce
