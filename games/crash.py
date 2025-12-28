@@ -28,3 +28,12 @@ def run_crash_game(screen):
                     running = False
         
         clock.tick(60)
+
+if __name__ == "__main__" :
+    pygame.init()
+    screen = pygame.display.set_mode((1280, 720))  # Ustawiamy tymczasowe okno
+    pygame.display.set_caption("Crash Game Test")
+
+    run_crash_game(screen)
+
+    pygame.quit()
