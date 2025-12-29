@@ -134,7 +134,10 @@ class BlackjackGame:
         #inicjujemy talie i rece
         self.deck=Deck()
         self.deck.shuffle()
-        self.player_hand=Hand()
+        #ZMIANA lista rak zamiast jednej reki
+        self.player_hands=[]
+        self.current_hand_index=0
+
         self.dealer_hand= Hand()
 
         #zaleznie od tego jaki jest stan gry, zachowuje sie ona inaczej
@@ -153,22 +156,26 @@ class BlackjackGame:
         self.chips -=10
         self.deck=Deck()
         self.deck.shuffle()
-        self.player_hand= Hand()
+        
+        #ZMIANA
+        self.player_hands=[Hand()]
+        self.current_hand_index=0
         self.dealer_hand= Hand()
 
-        #rozdajemy po 2 karty dla gracza i dealera
-        self.player_hand.add_card(self.deck.deal())
-        self.player_hand.add_card(self.deck.deal())
+        self.player_hands[0].add_card(self.deck.deal())
+        self.player_hands[0].add_card(self.deck.deal())
+        
+        #rozdajemy po 2 karty dla dealera
         self.dealer_hand.add_card(self.deck.deal())
         self.dealer_hand.add_card(self.deck.deal())
         
         #zmian stanu gry na ruch gracza
         self.state='player_turn'
-        self.message="Twoj ruch: HIT(H) lub STAND(S)"
+        self.message="Twoj ruch: HIT(H) lub STAND(S), DOUBLE(D), SPLIT(P)"
 
         #NOWA LOGIKA "Natural Blackjack"
         #Sprawdzam czy gracz ma 21 z rozdania
-        if self.player_hand.value==21:
+        if self.player_hands[0].value==21:
             if self.dealer_hand.value==21:
                 self.message= "REMIS (Obaj maja Blackjacka). Zwrot stawki."
                 self.chips+=self.current_bet
@@ -187,44 +194,75 @@ class BlackjackGame:
 
         #ruch gracza dobiera (HIT) lub nie dobiera(STAY)
         elif self.state == 'player_turn':
+            current_hand=self.player_hands[self.current_hand_index]
             if event.type == pygame.KEYDOWN:
 
                 if event.key==pygame.K_h:#jesli gracz kliknie h dodajemy mu karte do reki i sprawdzamy czy przekroczyl wartosc 21
-                    self.player_hand.add_card(self.deck.deal())
-                    if self.player_hand.value >21:
-                        self.state= 'game_over'
-                        self.message= "Przegrales! Spacja = nowa gra"
+                    current_hand.add_card(self.deck.deal())
+                    if current_hand.value >21:
+                       self.next_hand_or_dealer()
 
                 elif event.key== pygame.K_s:#jesli s dobieramy karte dealerowi
-                    self.state= 'dealer_turn'
-                    self.dealer_logic()
+                    self.next_hand_or_dealer()
                 
                 #NOWA LOGIKA "DOUBLE DOWN"
                 elif event.key==pygame.K_d:
-                    #Podwoic moznatylko wtedy kiedy masz wystarczajaco srodkow i tylko przy dwoch pierwszych kartach
-                    if self.chips>= self.current_bet and len(self.player_hand.cards)==2:
-                        self.chips -= self.current_bet
-                        self.current_bet*=2
-                        self.player_hand.add_card(self.deck.deal())
-
-                        if self.player_hand.value>21:
-                            self.state= 'game_over'
-                            self.message= f"Double Down nieudany! Strata {self.current_bet}."
-                        else:
-                            self.state='dealer_turn'
-                            self.dealer_logic()
+                    #podwajamy tylko dla aktualnej reki
+                    if self.chips >= self.current_bet and len(current_hand.cards)==2:
+                        self.chips -=self.current_bet
+                        # w prawdziwej grze kazda reka po splicie ma wlasny zaklad
+                        #dla uproszczenia przyjmujemy ze current bet to stawka na JEDNA reke
+                        current_hand.add_card(self.deck.deal())
+                        self.next_hand_or_dealer()
                     else:
-                        self.message= "Nie mozesz podwoic (brak srodkow lub zly moment)"
+                        self.message="Nie mozesz podwoic."
+                
+                #NOWA LOGIKA "SPLIT"
+                elif event.key==pygame.K_p:
+                    if len(current_hand.cards)==2 and \
+                    current_hand.cards[0].rank == current_hand.cards[1].rank and \
+                    self.chips >= self.current_bet:
+                        self.perform_split()
         
         #to odpowiada za "kliknij spacje zeby zaczac ponownie"
         elif self.state == 'game_over':
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
                 self.state= 'betting'
-                self.message= "Wcisnij SPACJE zeby zagrac za 10 monet"
+                self.message= "Wcisnij SPACJE"
                 if self.chips<10:
                     self.chips= STARTING_MONEY
-                    self.message= "Reset konta! Wcisnij SPACJE."
+                    self.message= "Reset srodkow!"
+    #nowa funkcja odpowiadajaca za split
+    def perform_split(self):
+        self.chips -= self.current_bet
 
+        current_hand=self.player_hands[self.current_hand_index]
+
+        split_card= current_hand.cards.pop()
+
+        current_hand.value-= values[split_card.rank]
+        if split_card.rank =='Ace':
+            current_hand.aces -=1
+
+        new_hand= Hand()
+        new_hand.add_card(split_card)
+
+        current_hand.add_card(self.deck.deal())
+        new_hand.add_card(self.deck.deal())
+
+        self.player_hands.append(new_hand)
+
+        self.message= "SPLIT! Grasz pierwsza reka."
+    
+    #
+    def next_hand_or_dealer(self):
+        if self.current_hand_index< len(self.player_hands)-1:
+            self.current_hand_index+=1
+            self.message = f"Grasz reka numer {self.current_hand_index+1}"
+        else:
+            self.state= 'dealer_turn'
+            self.dealer_logic()
+    
     #logika dealera
     def dealer_logic(self):
         #dealer dobiera karty dopoki ma mniej niz 17 pkt
@@ -232,22 +270,33 @@ class BlackjackGame:
         #Soft 17 czyli kiedy dealer ma 17 ale liczony z asem
         while self.dealer_hand.value<17 or (self.dealer_hand.value==17 and self.dealer_hand.aces>0):
             self.dealer_hand.add_card(self.deck.deal())
+        self.state="game_over"
+        self.message=""
 
-        #sprawdzanie warunkow wygranej
-        if self.dealer_hand.value>21:
-            win=self.current_bet*2
-            self.message= f"Dealer ma FURE! Wygrales {win-self.current_bet}$!"
-            self.chips+=win
-        elif self.dealer_hand.value<self.player_hand.value:
-            win=self.current_bet*2
-            self.message= f"Wygrales {win-self.current_bet}$."
-            self.chips+=win
-        elif self.dealer_hand.value>self.player_hand.value:
-            self.message="Dealer wygrywa. Tracisz stawke."
-        else:
-            self.message= "REMIS. Zwrot stawki"
-            self.chips+=self.current_bet
-        self.state= "game_over"
+        total_win=0
+
+        for i,hand in enumerate(self.player_hands):
+            bet=self.current_bet
+
+            result_msg=""
+
+            if hand.value>21:
+                result_msg= "Porażka (Fura)"
+            elif self.dealer_hand.value>21:
+                result_msg="Wygrana"
+                self.chips+=bet*2
+                total_win+=bet
+            elif self.dealer_hand.value>hand.value:
+                result_msg= "Porażka"
+            else:
+                result_msg="Remis"
+                self.chips+=bet
+            if len(self.player_hands)>1:
+                self.message +=f"R{i+1}: {result_msg} | "
+            else:
+                self.message= f"Dealer: {self.dealer_hand.value}. {result_msg}."
+        if len(self.player_hands)>1:
+            self.message+="Spacja = Start"
 
     #funkcja renderujaca - rysuje ona wszystko na ekranie w kazdej klatce
     def draw(self):
@@ -265,8 +314,17 @@ class BlackjackGame:
             #ukrywamy pierwsza karte dealera w turze gracza
             hide_dealer= (self.state=='player_turn')
             
+            
             #wywoluje tutaj narysowanie kart poprzez .draw() dla obiektow Hand(), ktore wywoluja funkcje .draw() dla obiektow Card
             self.dealer_hand.draw(self.screen,150,100, hide_first=hide_dealer)
-            self.player_hand.draw(self.screen,150,400)
+            
+            #rysowanie rak gracza
+            for i, hand in enumerate(self.player_hands):
+                x_pos=50+(i*250)
+
+                #kropka przy aktywnej rece
+                if self.state == 'player_turn' and i ==self.current_hand_index:
+                    pygame.draw.circle(self.screen,RED, (x_pos +50, 380),10)
+                hand.draw(self.screen,x_pos,400)
 
 
