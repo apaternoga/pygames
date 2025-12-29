@@ -74,29 +74,30 @@ class Card:
 
 class Deck:
 
-    #wypelniam deck wszystkimi mozliwymi kartami
-    def __init__(self):
+    #ZMIANA - Obsługa wielu talii
+    def __init__(self,num_decks=6):
         self.deck = []  
-        for suit in suits:
-            for rank in ranks:
-                self.deck.append(Card(suit, rank))
-
-    #znowu, funkcja niepotrzebna, tylko na potrzeby wyprintowania decku
-    def __str__(self):
-        word = "The deck has: \n"
-        for card in self.deck:
-            word += card.__str__() + "\n"
-        return word
-        pass
+        self.num_decks=num_decks
+        self.create_shoe()
     
-    #tasowanie kart w decku
+    def create_shoe(self):
+        self.deck=[]
+        for _ in range(self.num_decks):
+            for suit in suits:
+                for rank in ranks:
+                    self.deck.append(Card(suit,rank))
+            self.shuffle()
     def shuffle(self):
-        random.shuffle(self.deck)
+        random.shuffle
 
-    #wyciagniecie pierwszej karty z decku
     def deal(self):
-        single_card = self.deck.pop()
-        return single_card
+        if len(self.deck)==0:
+            self.create_shoe()
+        return self.deck.pop()
+    def needs_shuffle(self):
+        return len(self.deck)<(52*self.num_decks*0.25)
+
+
 
 
 class Hand:
@@ -132,8 +133,7 @@ class BlackjackGame:
         self.small_font=pygame.font.SysFont('Arial',20)
         
         #inicjujemy talie i rece
-        self.deck=Deck()
-        self.deck.shuffle()
+        self.deck = Deck(num_decks=6)
         #ZMIANA lista rak zamiast jednej reki
         self.player_hands=[]
         self.current_hand_index=0
@@ -144,19 +144,16 @@ class BlackjackGame:
         self.state='betting'
         self.message="Postaw zaklad, aby zagrac!"
         self.chips=STARTING_MONEY
-        self.current_bet=0
+        self.current_bet=10
+        self.insurance_bet=0
+        self.message="Ustaw stawke przy pomocy strzałek. Spacja = start."
 
     def start_round(self):
-        #jesli brakuje srodkow konczymy gre
-        if self.chips<10:
-            self.message="Brak srodkow! Koniec gry."
-            return
-        #jesli sa srodki pobieramy 10 , resetujemy talie i rece
-        self.current_bet=10
-        self.chips -=10
-        self.deck=Deck()
-        self.deck.shuffle()
-        
+        if self.deck.needs_shuffle():
+            self.deck.create_shoe()
+            self.message= "Tasowanie kart..."
+        self.chips -= self.current_bet
+        self.insurance_bet=0
         #ZMIANA
         self.player_hands=[Hand()]
         self.current_hand_index=0
@@ -173,25 +170,48 @@ class BlackjackGame:
         self.state='player_turn'
         self.message="Twoj ruch: HIT(H) lub STAND(S), DOUBLE(D), SPLIT(P)"
 
-        #NOWA LOGIKA "Natural Blackjack"
-        #Sprawdzam czy gracz ma 21 z rozdania
+    #nowa funkcja
+    def check_initial_blackjack(self):
+        #sprawdzanie natural blackjacka
         if self.player_hands[0].value==21:
             if self.dealer_hand.value==21:
-                self.message= "REMIS (Obaj maja Blackjacka). Zwrot stawki."
+                self.message= "REMIS (Obaj maja Blackjacka). Zwrot."
                 self.chips+=self.current_bet
+                self.state='game_over'
             else:
-                #wygrana 3:2
-                win_amount=int(self.current_bet*2.5)
-                self.message=f"BLACKJACK! Wygrywasz {win_amount-self.current_bet}$!" 
-                self.chips+=win_amount
-            self.state='game_over'
+                win_amount= int(self.current_bet*2.5)
+                self.message = f"BLACKJACK! Wygrywasz {win_amount- self.current_bet}$"
+                self.chips +=win_amount
+                self.state= 'game_over'
+        else:
+            #jesli nikt nie ma BJ or razu to gramy dalej
+            #amerykanska wersja BJ tez sie konczy gdy dealer ma 21 a gracz nie
+            if self.dealer_hand.value==21:
+                self.state = 'game_over'
+                self.message= "Dealer ma Blackjacka! Przegrales."
+            else:
+                self.state= 'player_turn'
+                self.message= "Ruch: H(Hit), S(Stand), D(Double), P(Split), U(Surrender)"
+
     #funkcja odpowiadajaca za wcisniecia klawiszy
     def handle_input(self,event):
-        #poczatek gry, gracz zaklada sie wciskac dowolny klawisz
-        if self.state== 'betting':
+       #system obstawiania
+        if self.state == 'betting':
             if event.type == pygame.KEYDOWN:
-                self.start_round()
+                if event.key == pygame.K_SPACE:
+                    if self.chips>= self.current_bet:
+                        self.start_round()
+                    else:
+                        self.message = "Brak srodkow na ten zaklad!"
+                elif event.key==pygame.K_UP:
+                    if self.chips>= self.current_bet+10:
+                        self.current_bet+=10
+                elif event.key==pygame.K_DOWN:
+                    if self.chips>10:
+                        self.current_bet-=10
+                
 
+        
         #ruch gracza dobiera (HIT) lub nie dobiera(STAY)
         elif self.state == 'player_turn':
             current_hand=self.player_hands[self.current_hand_index]
