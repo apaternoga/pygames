@@ -109,6 +109,41 @@ class Card:
         screen.blit(icon_surf, icon_rect)
 
 
+class Button:
+    def __init__(self, text, x, y, w, h, color=GOLD, text_color=BLACK):
+        self.text = text
+        self.rect = pygame.Rect(x, y, w, h)
+        self.color = color
+        self.text_color = text_color
+        # Kolor po najechaniu
+        self.hover_color = (255, 240, 100)
+        self.font = pygame.font.SysFont("Arial", 20, bold=True)
+        self.is_hovered = False
+
+    def draw(self, screen):
+        # Efekt podswietlenia po najechaniu
+        mouse_pos = pygame.mouse.get_pos()
+        self.is_hovered = self.rect.collidepoint(mouse_pos)
+
+        current_color = self.hover_color if self.is_hovered else self.color
+
+        # Rysowanie przycisku
+        pygame.draw.rect(screen, current_color, self.rect, border_radius=10)
+        pygame.draw.rect(screen, WHITE, self.rect, 2, border_radius=10)
+
+        # Wysrodkowanie tekstu na przycisku
+        text_surf = self.font.render(self.text, True, self.text_color)
+        text_rect = text_surf.get_rect(center=self.rect.center)
+        screen.blit(text_surf, text_rect)
+
+    # Funkcja ktora zwraca True tylko gdy klikniemy ja lewym przyciskiem myszki
+    def is_clicked(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+            if self.rect.collidepoint(event.pos):
+                return True
+        return False
+
+
 class Deck:
 
     # ZMIANA: obsługa wielu talii
@@ -171,6 +206,8 @@ class BlackjackGame:
         )
         self.font = pygame.font.SysFont("Arial", 30)
         self.small_font = pygame.font.SysFont("Arial", 20)
+        # "Brush Script MT" to standard na Windows/Mac, jak nie ma to wezmie domyslna
+        self.logo_font = pygame.font.SysFont("Brush Script MT", 65, italic=True)
 
         # inicjujemy talie i rece
         self.deck = Deck(num_decks=6)
@@ -182,67 +219,110 @@ class BlackjackGame:
 
         # zaleznie od tego jaki jest stan gry, zachowuje sie ona inaczej
         self.state = "betting"
-        self.message = "Postaw zaklad, aby zagrac!"
+        # self.message="Postaw zaklad, aby zagrac!"
+        self.message = "Ustaw stawke i kliknij ROZDAJ"
         self.chips = STARTING_MONEY
         self.current_bet = 10
         self.insurance_bet = 0
-        self.message = "Ustaw stawke przy pomocy strzałek. Spacja = start."
+
+        # NOWE: Dynamiczne przyciski
+        btn_y = SCREEN_HEIGHT - 65
+        btn_w = 110  # Szerokosc przycisku
+        spacing = 10  # Odstep miedzy przyciskami
+
+        # Obliczamy pozycje startowa X zeby cala grupa przyciskow byla na srodku
+        # Mamy 5 przyciskow akcji
+        total_width_buttons = (5 * btn_w) + (4 * spacing)
+        start_x = (SCREEN_WIDTH - total_width_buttons) // 2
+
+        self.btn_hit = Button("DOBIERZ", start_x, btn_y, btn_w, 50)
+        self.btn_stand = Button(
+            "PAS", start_x + (btn_w + spacing) * 1, btn_y, btn_w, 50
+        )
+        self.btn_double = Button(
+            "PODWÓJ",
+            start_x + (btn_w + spacing) * 2,
+            btn_y,
+            btn_w,
+            50,
+            color=(200, 150, 50),
+        )
+        self.btn_split = Button(
+            "SPLIT",
+            start_x + (btn_w + spacing) * 3,
+            btn_y,
+            btn_w,
+            50,
+            color=(200, 150, 50),
+        )
+        self.btn_surrender = Button(
+            "PODDAJ",
+            start_x + (btn_w + spacing) * 4,
+            btn_y,
+            btn_w,
+            50,
+            color=(150, 50, 50),
+            text_color=WHITE,
+        )
+
+        # Przycisk Rozdaj idealnie na srodku
+        self.btn_deal = Button(
+            "ROZDAJ KARTY",
+            SCREEN_WIDTH // 2 - 100,
+            btn_y,
+            200,
+            50,
+            color=WHITE,
+            text_color=BLACK,
+        )
 
     def start_round(self):
-        if self.deck.needs_shuffle():
-            self.deck.create_shoe()
-            self.message = "Tasowanie kart..."
-        self.chips -= self.current_bet
-        self.insurance_bet = 0
-        # ZMIANA
         self.player_hands = [Hand()]
         self.current_hand_index = 0
         self.dealer_hand = Hand()
+        self.player_hands[0].bet = self.current_bet
 
+        # POPRAWKA: Odejmujemy pieniądze na starcie
+        self.chips -= self.current_bet
+
+        self.deck = Deck(num_decks=6)
+        self.deck.shuffle()
+
+        # Rozdajemy po 2 karty
         self.player_hands[0].add_card(self.deck.deal())
+        self.dealer_hand.add_card(self.deck.deal())
         self.player_hands[0].add_card(self.deck.deal())
-
-        # rozdajemy po 2 karty dla dealera
-        self.dealer_hand.add_card(self.deck.deal())
         self.dealer_hand.add_card(self.deck.deal())
 
-        dealer_up_card = self.dealer_hand.cards[1]
+        self.state = "player_turn"
+        self.message = "Twoj ruch!"
 
-        if dealer_up_card == "Ace":
-            self.state = "insurance"
-            insurance_cost = self.current_bet // 2
-            self.message = (
-                f"Dealer ma Asa. Ubezpieczenie? Koszt: {insurance_cost} (T/N)"
-            )
-        else:
-            self.check_initial_blackjack()
+        if self.check_initial_blackjack():
+            return
 
-    # nowa funkcja
     def check_initial_blackjack(self):
-        # sprawdzanie natural blackjacka
-        if self.player_hands[0].value == 21:
-            if self.dealer_hand.value == 21:
-                self.message = "REMIS (Obaj maja Blackjacka). Zwrot."
-                self.chips += self.current_bet
-                self.state = "game_over"
-            else:
-                win_amount = int(self.current_bet * 2.5)
-                self.message = f"BLACKJACK! Wygrywasz {win_amount- self.current_bet}$"
-                self.chips += win_amount
-                self.state = "game_over"
-        else:
-            # jesli nikt nie ma BJ or razu to gramy dalej
-            # amerykanska wersja BJ tez sie konczy gdy dealer ma 21 a gracz nie
-            if self.dealer_hand.value == 21:
-                self.state = "game_over"
-                self.message = "Dealer ma Blackjacka! Przegrales."
-            else:
-                self.state = "player_turn"
-                self.message = (
-                    "Ruch: H(Hit), S(Stand), D(Double), P(Split), U(Surrender)"
-                )
+        player_bj = self.player_hands[0].value == 21
+        dealer_bj = self.dealer_hand.value == 21
 
-    # funkcja odpowiadajaca za wcisniecia klawiszy
+        if player_bj and dealer_bj:
+            # Remis: Oddajemy zabraną stawkę
+            self.chips += self.current_bet
+            self.message = "Remis (Push)! Obaj macie Blackjacka."
+            self.state = "game_over"
+            return True
+        elif player_bj:
+            # Wygrana: Oddajemy stawkę + 1.5 stawki wygranej
+            win_amount = self.current_bet + int(self.current_bet * 1.5)
+            self.chips += win_amount
+            self.message = "Blackjack! Wygrywasz 3:2!"
+            self.state = "game_over"
+            return True
+        elif dealer_bj:
+            # Przegrana: Nic nie robimy, pieniądze już zabrane w start_round
+            pass
+        return False
+
+    # funkcja odpowiadajaca za wcisniecia klawiszy ORAZ myszki
     def handle_input(self, event):
         # system obstawiania
         if self.state == "betting":
@@ -259,109 +339,120 @@ class BlackjackGame:
                     if self.chips > 10:
                         self.current_bet -= 10
 
+            # obsluga myszki dla przycisku rozdaj
+            if self.btn_deal.is_clicked(event):
+                if self.chips >= self.current_bet:
+                    self.start_round()
+                else:
+                    self.message = "Brak srodkow na ten zaklad!"
+
         # ruch gracza dobiera (HIT) lub nie dobiera(STAY)
         elif self.state == "player_turn":
             current_hand = self.player_hands[self.current_hand_index]
+
+            # zmienna pomocnicza zeby nie pisac kodu dwa razy dla klawiatury i myszki
+            action = None
+
             if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_h:
+                    action = "hit"
+                elif event.key == pygame.K_s:
+                    action = "stand"
+                elif event.key == pygame.K_d:
+                    action = "double"
+                elif event.key == pygame.K_p:
+                    action = "split"
+                elif event.key == pygame.K_u:
+                    action = "surrender"
 
+            # sprawdzamy klikniecia myszka
+            if self.btn_hit.is_clicked(event):
+                action = "hit"
+            elif self.btn_stand.is_clicked(event):
+                action = "stand"
+            elif self.btn_double.is_clicked(event):
+                if self.chips >= self.current_bet and len(current_hand.cards) == 2:
+                    action = "double"
+            elif self.btn_split.is_clicked(event):
                 if (
-                    event.key == pygame.K_h
-                ):  # jesli gracz kliknie h dodajemy mu karte do reki i sprawdzamy czy przekroczyl wartosc 21
-                    current_hand.add_card(self.deck.deal())
-                    if current_hand.value > 21:
-                        self.next_hand_or_dealer()
+                    len(current_hand.cards) == 2
+                    and current_hand.cards[0].rank == current_hand.cards[1].rank
+                    and self.chips >= self.current_bet
+                ):
+                    action = "split"
+            elif self.btn_surrender.is_clicked(event):
+                if len(self.player_hands) == 1 and len(current_hand.cards) == 2:
+                    action = "surrender"
 
-                elif event.key == pygame.K_s:  # jesli s dobieramy karte dealerowi
+            # wykonanie akcji
+            if (
+                action == "hit"
+            ):  # jesli gracz kliknie h dodajemy mu karte do reki i sprawdzamy czy przekroczyl wartosc 21
+                current_hand.add_card(self.deck.deal())
+                if current_hand.value > 21:
                     self.next_hand_or_dealer()
 
-                # NOWA LOGIKA "DOUBLE DOWN"
-                elif event.key == pygame.K_d:
-                    # podwajamy tylko dla aktualnej reki
-                    if self.chips >= self.current_bet and len(current_hand.cards) == 2:
-                        self.chips -= self.current_bet
-                        # w prawdziwej grze kazda reka po splicie ma wlasny zaklad
-                        # dla uproszczenia przyjmujemy ze current bet to stawka na JEDNA reke
-                        current_hand.add_card(self.deck.deal())
-                        self.next_hand_or_dealer()
-                    else:
-                        self.message = "Nie mozesz podwoic."
+            elif action == "stand":  # jesli s dobieramy karte dealerowi
+                self.next_hand_or_dealer()
 
-                # NOWA LOGIKA "SPLIT"
-                elif event.key == pygame.K_p:
-                    if (
-                        len(current_hand.cards) == 2
-                        and current_hand.cards[0].rank == current_hand.cards[1].rank
-                        and self.chips >= self.current_bet
-                    ):
-                        self.perform_split()
-                elif event.key == pygame.K_u:
-                    if len(self.player_hands) == 1 and len(current_hand.cards) == 2:
-                        refund = self.current_bet // 2
-                        self.chips += refund
-                        self.message = f"Poddales sie. Zwrot {refund}."
-                        self.state = "game_over"
-                    else:
-                        self.message = "Za pozno na poddanie!"
+            # NOWA LOGIKA "DOUBLE DOWN"
+            elif action == "double":
+                # podwajamy tylko dla aktualnej reki
+                if self.chips >= self.current_bet and len(current_hand.cards) == 2:
+                    self.chips -= self.current_bet
+                    # w prawdziwej grze kazda reka po splicie ma wlasny zaklad
+                    # dla uproszczenia przyjmujemy ze current bet to stawka na JEDNA reke
+                    current_hand.add_card(self.deck.deal())
+                    self.next_hand_or_dealer()
+                else:
+                    self.message = "Nie mozesz podwoic."
+
+            # NOWA LOGIKA "SPLIT"
+            elif action == "split":
+                self.perform_split()
+
+            elif action == "surrender":
+                refund = self.current_bet // 2
+                self.chips += refund
+                self.message = f"Poddales sie. Zwrot {refund}."
+                self.state = "game_over"
 
         # to odpowiada za "kliknij spacje zeby zaczac ponownie"
         elif self.state == "game_over":
             if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
-                self.state = "betting"
-                self.message = "Wcisnij SPACJE"
-                if self.chips < 10:
-                    self.chips = STARTING_MONEY
-                    self.message = "Reset srodkow!"
+                self.reset_game()
 
-    def resolve_insurance(self):
-        if self.dealer_hand.value == 21:
-            self.message = "Dealer ma Blackjacka!"
-            self.state = "game_over"
-
-            # Wypłata ubezpieczenia 2:1
-            if self.insurance_bet > 0:
-                self.chips += self.insurance_bet * 3  # Zwrot stawiki ubezp + wygrana 2x
-                self.message += "Wygrywasz ubezpieczenie."
-            else:
-                self.message += " Przegrales."
-            # Gracz traci glowny zaklad
-            # w pelnym kasynie jak gracz ma bj to jest 'even money' ale tu upraszczamy - dealer BJ wygrywa main bet
-        else:
-            self.message = "Dealer nie ma Blackjacka. Graj dalej."
-            self.check_initial_blackjack()
-
-    # nowa funkcja odpowiadajaca za split
     def perform_split(self):
-        self.chips -= self.current_bet
-
+        # Pobieramy aktualna reke
         current_hand = self.player_hands[self.current_hand_index]
-
-        split_card = current_hand.cards.pop()
-
-        current_hand.value -= values[split_card.rank]
-        if split_card.rank == "Ace":
-            current_hand.aces -= 1
-
+        self.chips -= self.current_bet
+        # Zabieramy jedna karte z obecnej reki, by stworzyc nowa
+        card_to_move = current_hand.cards.pop()
         new_hand = Hand()
-        new_hand.add_card(split_card)
-
+        new_hand.add_card(card_to_move)
+        new_hand.bet = self.current_bet
+        # Dobieramy po jednej karcie do obu rozdzielonych rąk
         current_hand.add_card(self.deck.deal())
         new_hand.add_card(self.deck.deal())
 
-        self.player_hands.append(new_hand)
+        # wstawiamy nowa reke zaraz po aktualnej rece w liscie,
+        # dzieki czemu gra płynnie przejdzie do niej w nastepnym kroku petli
+        self.player_hands.insert(self.current_hand_index + 1, new_hand)
+        self.message = "Rozdzielono reke (Split)!"
 
-        self.message = "SPLIT! Grasz pierwsza reka."
-
-    #
     def next_hand_or_dealer(self):
         if self.current_hand_index < len(self.player_hands) - 1:
             self.current_hand_index += 1
-            self.message = f"Grasz reka numer {self.current_hand_index+1}"
+            self.message = f"Reka {self.current_hand_index + 1} - Twoj ruch"
         else:
             self.state = "dealer_turn"
             self.dealer_logic()
 
-    # logika dealera
     def dealer_logic(self):
+        self.message = "Ruch krupiera..."
+        self.draw()
+        pygame.display.update()
+        pygame.time.wait(500)
         # dealer dobiera karty dopoki ma mniej niz 17 pkt
         # NOWA LOGIKA "Soft 17"
         # Soft 17 czyli kiedy dealer ma 17 ale liczony z asem
@@ -369,46 +460,53 @@ class BlackjackGame:
             self.dealer_hand.value == 17 and self.dealer_hand.aces > 0
         ):
             self.dealer_hand.add_card(self.deck.deal())
-        self.state = "game_over"
-        self.message = ""
-
-        total_win = 0
-
+            self.draw()
+            pygame.display.update()
+            pygame.time.wait(1000)
+        # sprawdzanie warunkow wygranej/przegranej
+        final_message = ""
         for i, hand in enumerate(self.player_hands):
-            bet = self.current_bet
-
-            result_msg = ""
-
             if hand.value > 21:
-                result_msg = "Porażka (Fura)"
+                final_message += f"Reka {i+1}: Fura! "
             elif self.dealer_hand.value > 21:
-                result_msg = "Wygrana"
-                self.chips += bet * 2
-                total_win += bet
-            elif self.dealer_hand.value > hand.value:
-                result_msg = "Porażka"
+                self.chips += hand.bet * 2
+                final_message += f"Reka {i+1}: Wygrana! "
+            elif hand.value > self.dealer_hand.value:
+                self.chips += hand.bet * 2
+                final_message += f"Reka {i+1}: Wygrana! "
+            elif hand.value < self.dealer_hand.value:
+                final_message += f"Reka {i+1}: Przegrana. "
             else:
-                result_msg = "Remis"
-                self.chips += bet
-            if len(self.player_hands) > 1:
-                self.message += f"R{i+1}: {result_msg} | "
-            else:
-                self.message = f"Dealer: {self.dealer_hand.value}. {result_msg}."
-        if len(self.player_hands) > 1:
-            self.message += "Spacja = Start"
+                self.chips += hand.bet
+                final_message += f"Reka {i+1}: Remis. "
+
+        self.message = final_message
+        self.state = "game_over"
+
+    def reset_game(self):
+        self.state = "betting"
+        self.message = "Wcisnij SPACJE lub kliknij ROZDAJ"
+        if self.chips < 10:
+            self.chips = STARTING_MONEY
+            self.message = "Reset srodkow!"
 
     # funkcja renderujaca - rysuje ona wszystko na ekranie w kazdej klatce
     def draw(self):
-        #  Tło i panel (bez zmian)
         self.screen.fill(GREEN_FELT)
-        # Koło na środku
+
+        # NOWE: Kolo na srodku z napisem "Blackjack"
+        center_x, center_y = SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2
         pygame.draw.circle(
-            self.screen,
-            (30, 120, 30),
-            (SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 - 50),
-            100,
-            5,
+            self.screen, (30, 120, 30), (center_x, center_y - 50), 120, 5
         )
+
+        # Ozdobny napis w srodku kola
+        logo_surf = self.logo_font.render(
+            "Blackjack", True, (120, 215, 120)
+        )  # bialawy napis
+        logo_rect = logo_surf.get_rect(center=(center_x, center_y - 50))
+        logo_rect = logo_surf.get_rect(center=(center_x, center_y - 50))
+        self.screen.blit(logo_surf, logo_rect)
 
         panel_rect = pygame.Rect(0, SCREEN_HEIGHT - 80, SCREEN_WIDTH, 80)
         pygame.draw.rect(self.screen, DARK_PANEL, panel_rect)
@@ -420,35 +518,45 @@ class BlackjackGame:
             3,
         )
 
-        # Wyświetlanie informacji (bez zmian)
-        bet_info = f"STAWKA: {self.current_bet}$"
+        # Wyswietlanie aktualnego zakladu w fazie betting
+        bet_info = f"Stawka: {self.current_bet}"
         if self.state == "betting":
-            bet_info += " (↕ Zmień)"
+            bet_info += " (Gora/Dol)"
 
-        chips_surf = self.font.render(f"BANK: {self.chips}$", True, GOLD)
-        bet_surf = self.font.render(bet_info, True, WHITE)
-        self.screen.blit(chips_surf, (20, SCREEN_HEIGHT - 60))
-        self.screen.blit(bet_surf, (SCREEN_WIDTH - 300, SCREEN_HEIGHT - 60))
+        chips_text = self.font.render(f"Zetony: {self.chips} | {bet_info} ", True, GOLD)
 
-        msg_font = self.font if len(self.message) < 30 else self.small_font
-        msg_surf = msg_font.render(self.message, True, MESSAGE_COLOR)
-        msg_rect = msg_surf.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 40))
-        self.screen.blit(msg_surf, msg_rect)
+        # NOWE: Wiadomosc na samej gorze ekranu
+        msg_text = self.font.render(self.message, True, MESSAGE_COLOR)
 
-        # Rysowanie kart
+        # "naklejamy" napisy na ekran
+        self.screen.blit(chips_text, (20, SCREEN_HEIGHT - 60))
+
+        # Centrujemy wiadomosc na gorze (y=30)
+        msg_rect = msg_text.get_rect(center=(SCREEN_WIDTH // 2, 30))
+        self.screen.blit(msg_text, msg_rect)
+
+        # jesli gra trwa, rysujemy karty (nie jestesmy w menu obstawienia)
         if self.state != "betting":
-            # Dealer (bez zmian)
             hide_dealer = self.state == "player_turn" or self.state == "insurance"
+
+            # Sztywne ustawienie po lewej
+            dealer_x = 100
+
+            # wywoluje tutaj narysowanie kart poprzez .draw() dla obiektow Hand()
+            self.dealer_hand.draw(self.screen, dealer_x, 100, hide_first=hide_dealer)
+
             dealer_label = self.small_font.render("Krupier", True, (200, 255, 200))
-            self.screen.blit(dealer_label, (150, 70))
-            self.dealer_hand.draw(self.screen, 150, 100, hide_first=hide_dealer)
 
+            label_rect = dealer_label.get_rect(center=(dealer_x + 50, 80))
+
+            self.screen.blit(dealer_label, label_rect)
+
+            # rysowanie rak gracza
             for i, hand in enumerate(self.player_hands):
+                # NOWE: Pozycjonowanie przy Splicie
+                start_x = 100
 
-                # Pozycja startowa: 150px od lewej krawędzi
-                start_x = 150
-
-                # ODSTĘP PRZY SPLICIE: każda kolejna ręka przesunięta o 750px
+                # ODSTĘP PRZY SPLICIE: każda kolejna ręka przesunięta o 600px
                 gap = 600
 
                 x_pos = start_x + (i * gap)
@@ -467,3 +575,24 @@ class BlackjackGame:
                     self.screen.blit(label, label_rect)
 
                 hand.draw(self.screen, x_pos, 380)
+
+        # Rysowanie przyciskow
+        if self.state == "betting":
+            self.btn_deal.draw(self.screen)
+        elif self.state == "player_turn":
+            current_hand = self.player_hands[self.current_hand_index]
+            self.btn_hit.draw(self.screen)
+            self.btn_stand.draw(self.screen)
+
+            if len(current_hand.cards) == 2 and self.chips >= self.current_bet:
+                self.btn_double.draw(self.screen)
+
+            if (
+                len(current_hand.cards) == 2
+                and current_hand.cards[0].rank == current_hand.cards[1].rank
+                and self.chips >= self.current_bet
+            ):
+                self.btn_split.draw(self.screen)
+
+            if len(self.player_hands) == 1 and len(current_hand.cards) == 2:
+                self.btn_surrender.draw(self.screen)
