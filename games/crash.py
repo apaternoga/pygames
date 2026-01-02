@@ -75,6 +75,10 @@ class CrashGame :
     def start_round(self) :
         """Rozpoczyna nową rundę - pobiera zakład i losuje wynik"""
 
+        # Jesli runda juz trwa, to nie mozna postawic znowu przed jej koncem
+        if self.state == "RUNNING":
+            return
+
         #podawana jest wysokosc zakladu przez gracza
         amount = int(self.bet_input_text) if self.bet_input_text != "" else 0
         
