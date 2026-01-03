@@ -1,5 +1,6 @@
 import pygame
 import sys
+from games import blackjack
 
 # 1. Inicjalizacja ekranu
 pygame.init()
@@ -42,27 +43,39 @@ class Button:
                 return True
         return False
 
-# --- TWORZENIE PRZYCISKÓW (Robimy to raz, przed pętlą) ---
+#TWORZENIE PRZYCISKÓW
 btn_start = Button(300, 250, 200, 50, "START")
 btn_exit = Button(300, 350, 200, 50, "WYJŚCIE")
+btn_autorzy = Button(300, 450, 200, 50, "AUTORZY") 
+
+btn_bj = Button(250, 150, 300, 60, "Blackjack")
+btn_g2 = Button(250, 250, 300, 60, "Gra 2")
+btn_g3 = Button(250, 350, 300, 60, "Gra 3")
+btn_back = Button(250, 470, 300, 60, "Powrót")
 
 state = "MENU"
+
+active_game= None
 
 def draw_menu():
     screen.fill(WHITE)
     title_text = font.render("MENU GŁÓWNE", True, BLACK)
     screen.blit(title_text, (275, 100))
     
-    # ZOBACZ: Zamiast 10 linii kodu, mamy tylko to:
     btn_start.draw(screen)
     btn_exit.draw(screen)
+    btn_autorzy.draw(screen)
 
 def draw_game_placeholder():
     screen.fill((0, 255, 0)) # Zielony
-    text = font.render("TU BĘDĄ MINIGIERKI", True, BLACK)
-    back_text = font.render("Naciśnij M, aby wrócić", True, BLACK)
-    screen.blit(text, (200, 250))
-    screen.blit(back_text, (220, 350))
+    text = font.render("MINIGIERKI", True, BLACK)
+    #back_text = font.render("Naciśnij M, aby wrócić", True, BLACK)
+    btn_bj.draw(screen)
+    btn_g2.draw(screen)
+    btn_g3.draw(screen)
+    btn_back.draw(screen)
+    screen.blit(text, (300, 75))
+    #screen.blit(back_text, (220, 350))
 
 # 2. Główna pętla programu
 running = True
@@ -72,23 +85,50 @@ while running:
             running = False
             
         if state == "MENU":
-            # ZOBACZ: Nie musisz już wpisywać ręcznie liczb (300 <= mouse_pos[0]...)
-            # Klasa sama wie, gdzie jest przycisk!
+            
             if btn_start.is_clicked(event):
-                state = "GRA"
+                state = "GRY"
+            
+            if btn_autorzy.is_clicked(event):
+                print("Tu wyświetlimy autorów!")
             
             if btn_exit.is_clicked(event):
                 running = False
         
+        elif state == "GRY":
+            if btn_bj.is_clicked(event):
+                active_game = blackjack.BlackjackGame(screen)
+                state = "GRA"
+            if btn_g2.is_clicked(event):
+                print("Wybrano Grę 2")
+                state = "GRA"
+            if btn_g3.is_clicked(event):
+                print("Wybrano Grę 3")
+                state = "GRA"
+            if btn_back.is_clicked(event):
+                state = "MENU"
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    state = "MENU"
+        
         elif state == "GRA":
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_m:
-                    state = "MENU"
+                if event.key == pygame.K_ESCAPE:
+                    state = "GRY"
+                    active_game = None
+
+                if active_game:
+                    active_game.handle_input(event)
 
     if state == "MENU":
         draw_menu()
-    elif state == "GRA":
+    elif state == "GRY":
         draw_game_placeholder()
+    elif state == "GRA":
+        if active_game:
+            active_game.draw()
+        else:
+            draw_game_placeholder()
 
     pygame.display.flip()
 
