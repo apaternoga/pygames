@@ -73,15 +73,15 @@ class Card:
 
         # Konwersja nazw na symbole
         rank_conversion = {
-            "Two": "2",
-            "Three": "3",
-            "Four": "4",
-            "Five": "5",
-            "Six": "6",
-            "Seven": "7",
-            "Eight": "8",
-            "Nine": "9",
-            "Ten": "10",
+            "Two": 2,
+            "Three": 3,
+            "Four": 4,
+            "Five": 5,
+            "Six": 6,
+            "Seven": 7,
+            "Eight": 8,
+            "Nine": 9,
+            "Ten": 10,
             "Jack": "J",
             "Queen": "Q",
             "King": "K",
@@ -95,18 +95,94 @@ class Card:
         # Kolor czcionki
         color = RED if self.suit in ["Hearts", "Diamonds"] else BLACK
 
+        rank_str = str(rank_short) 
+
         # Czcionki
-        font_small = pygame.font.SysFont("Arial", 18, bold=True)
-        font_large = pygame.font.SysFont("Segoe UI Symbol", 60)  # Duży symbol na środku
+        font_corner = pygame.font.SysFont("Arial", 18, bold=True)
+        font_pip = pygame.font.SysFont("Segoe UI Symbol", 28) # Do małych symboli
+        font_face = pygame.font.SysFont("Times New Roman", 60) # Do figur
 
-        # Lewy górny róg
-        screen.blit(font_small.render(rank_short, True, color), (x + 8, y + 8))
-        screen.blit(font_small.render(suit_icon, True, color), (x + 8, y + 28))
+        # --- RYSOWANIE ROGÓW ---
 
-        # Duży symbol na środku karty
-        icon_surf = font_large.render(suit_icon, True, color)
-        icon_rect = icon_surf.get_rect(center=rect.center)
-        screen.blit(icon_surf, icon_rect)
+        # Lewy górny
+        screen.blit(font_corner.render(rank_str, True, color), (x + 5, y + 5))
+        screen.blit(font_corner.render(suit_icon, True, color), (x + 5, y + 25))
+        
+        # Prawy dolny
+        corner_rank_surf = font_corner.render(rank_str, True, color)
+        corner_rank_surf = pygame.transform.rotate(corner_rank_surf, 180)
+        corner_suit_surf = font_corner.render(suit_icon, True, color)
+        corner_suit_surf = pygame.transform.rotate(corner_suit_surf, 180)
+
+        screen.blit(corner_rank_surf, (x + 95 - corner_rank_surf.get_width(), y + 145 - 20))
+        screen.blit(corner_suit_surf, (x + 95 - corner_suit_surf.get_width(), y + 145 - 40))
+
+        # Pozycje
+        if isinstance(rank_short, int): # LICZBY 2-10
+            # Pozycje X
+            col_L = 28
+            col_M = 50
+            col_R = 72
+            
+            # Pozycje Y
+            row_T = 35
+            row_MT = 57
+            row_C = 75
+            row_MB = 93
+            row_B = 115
+            
+            pips = []
+            if rank_short == 2:
+                pips = [(col_M, row_T), (col_M, row_B)]
+            elif rank_short == 3:
+                pips = [(col_M, row_T), (col_M, row_C), (col_M, row_B)]
+            elif rank_short == 4:
+                pips = [(col_L, row_T), (col_R, row_T), (col_L, row_B), (col_R, row_B)]
+            elif rank_short == 5:
+                pips = [(col_L, row_T), (col_R, row_T), (col_L, row_B), (col_R, row_B), (col_M, row_C)]
+            elif rank_short == 6:
+                pips = [(col_L, row_T), (col_R, row_T), (col_L, row_C), (col_R, row_C), (col_L, row_B), (col_R, row_B)]
+            elif rank_short == 7:
+                pips = [(col_L, row_T), (col_R, row_T), (col_L, row_C), (col_R, row_C), (col_L, row_B), (col_R, row_B), (col_M, row_MT)]
+            elif rank_short == 8:
+                pips = [(col_L, row_T), (col_R, row_T), (col_L, row_C), (col_R, row_C), (col_L, row_B), (col_R, row_B), (col_M, row_MT), (col_M, row_MB)]
+            elif rank_short == 9:
+                 pips = [
+                     (col_L, row_T), (col_L, row_MT+3), (col_L,  row_MB-3), (col_L, row_B), # Lewa
+                     (col_R, row_T), (col_R, row_MT+3), (col_R,  row_MB-3), (col_R, row_B), # Prawa
+                     (col_M, row_C) # Środek
+                 ]
+            elif rank_short == 10:
+                 pips = [
+                     (col_L, row_T), (col_L, row_MT+3), (col_L,  row_MB-3), (col_L, row_B), # Lewa
+                     (col_R, row_T), (col_R, row_MT+3), (col_R,  row_MB-3), (col_R, row_B), # Prawa
+                     (col_M, 48), (col_M, 102) # Dwa w środku
+                 ]
+
+            # Rysowanie małych symboli
+            for (px, py) in pips:
+                pip_surf = font_pip.render(suit_icon, True, color)
+
+                if py > 75:
+                    pip_surf = pygame.transform.rotate(pip_surf, 180)
+
+                pip_rect = pip_surf.get_rect(center=(x + px, y + py))
+                screen.blit(pip_surf, pip_rect)
+
+        else: 
+            # FIGURY (J, Q, K, A)
+            if rank_short == "A":
+                font_ace = pygame.font.SysFont("Segoe UI Symbol", 80)
+                pip_surf = font_ace.render(suit_icon, True, color)
+                pip_rect = pip_surf.get_rect(center=(x + 50, y + 75))
+                screen.blit(pip_surf, pip_rect)
+            else:
+                # Dla figur (J, Q, K) ramka i litera
+                pygame.draw.rect(screen, color, (x+20, y+30, 60, 90), 1)
+                
+                face_surf = font_face.render(rank_str, True, color)
+                face_rect = face_surf.get_rect(center=(x + 50, y + 75))
+                screen.blit(face_surf, face_rect)
 
 
 class Button:
