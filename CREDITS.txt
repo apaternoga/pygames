@@ -12,5 +12,4 @@ reszta grafik wygenerowana przez GEMINI
 ALGORYTMY:
 Funkcja: _generate_crash_point
     Opis: Implementacja algorytmu losowania opartego na Odwrotnej Dystrybuancie (Inverse Probability Distribution).
-    Źródło: Zaimplementowano na podstawie otwartego kodu źródłowego Bustabit.
-    Link: https://github.com/bustabit/bustabit-web-server
+    Źródło: Zaimplementowano na podstawie podejścia opartego na Inverse Probability Distribution.

@@ -155,7 +155,7 @@ def draw_credits(screen, bg_image, btns, font, font_smaller, scroll_y):
     full_text = [
         "HEADER:CRASH GAME MATH",
         "Algorithm: Inverse Probability Distribution.",
-        "Based on: Bustabit Open Source code.",
+        "Based on: open-source reference implementation.",
         "", 
         "HEADER:AUDIO RESOURCES",
         "Background Music: Public Domain (CC0).",

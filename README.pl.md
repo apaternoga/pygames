@@ -5,7 +5,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
 ![Pygame](https://img.shields.io/badge/Pygame-CE-yellow?style=for-the-badge&logo=python&logoColor=white)
-![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 
 
 
@@ -61,10 +61,10 @@ Zaawansowana symulacja Blackjacka kładąca nacisk na płynność rozgrywki, pro
 
 ### 🚀 Crash
 
-Dynamiczna gra typu "Crypto/Stock", testująca chciwość i refleks gracza. Inspirowana mechaniką *Bustabit*.
+Dynamiczna gra typu "Crypto/Stock", testująca chciwość i refleks gracza.
 
 **Główne funkcjonalności:**
-* **Bustabit-like Algorithm:** Punkt "wybuchu" (crash point) generowany jest na podstawie sprawdzonego algorytmu opartego na *Inverse Probability Distribution*.
+* **Algorytm:** Punkt "wybuchu" (crash point) generowany jest przy użyciu podejścia opartego na *Inverse Probability Distribution*.
 * **Auto Cashout:** System pozwalający na ustawienie automatycznej wypłaty przy określonym mnożniku.
 * **System Mnożnika:** Wykładniczy wzrost wartości wykresu (`growth_speed`) symulujący giełdową "pompę".
 * **Wizualizacja:** Wykres rysowany dynamicznie za pomocą wielokątów z gradientowym wypełnieniem.
@@ -144,7 +144,7 @@ Projekt zachowuje czystą strukturę plików, oddzielając logikę od zasobów:
 ## 📚 Źródła i Licencja
 
 ### Licencja
-Projekt udostępniany jest na licencji **AGPL-3.0**.
+Projekt udostępniany jest na licencji **MIT**.
 
 Copyright © 2025 **Adrian Paternoga**, **Adam Zalewski**, **Filip Liskowski**, **Miłosz Kiedrzyński**, **Patryk Iżbicki**, **Borys Kaczka**.
 
@@ -153,9 +153,7 @@ Oprogramowanie jest dostarczane w stanie „takim, jakie jest”, bez udzielania
 ### Wykorzystane zasoby i Narzędzia (Credits)
 
 **1. Gra Crash:**
-* **Algorytm:** Funkcja `_generate_crash_point` zaimplementowana na podstawie otwartego kodu źródłowego **Bustabit** (Inverse Probability Distribution).
-    * **Licencja:** Bustabit v1-webserver jest na licencji **AGPL-3.0**.
-    * [Link do repozytorium Bustabit](https://github.com/bustabit/v1-webserver)
+* **Algorytm:** Funkcja `_generate_crash_point` wykorzystuje podejście oparte na *Inverse Probability Distribution*.
 
 **2. Oprawa Audio:**
 * **Muzyka w tle (Menu/Rozgrywka):** Utwory na licencji **Public Domain (CC0)** – brak wymogu atrybucji autora.

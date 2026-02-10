@@ -117,7 +117,7 @@ class CrashGame:
             pygame.draw.line(self.screen, (20, 30, 50), (0, y), (self.W, y))
 
     def _generate_crash_point(self):
-        # Bustabit algorithm
+        # Crash-point algorithm
         r = random.random()
         house_edge = 0.01
         if r == 0: r = 0.0000001

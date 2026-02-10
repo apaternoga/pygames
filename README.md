@@ -6,7 +6,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white)
 ![Pygame](https://img.shields.io/badge/Pygame-CE-yellow?style=for-the-badge&logo=python&logoColor=white)
-![License](https://img.shields.io/badge/License-AGPL--3.0-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
 </div>
 
 ## 📋 Table of Contents
@@ -58,10 +58,10 @@ An advanced Blackjack simulation focusing on smooth gameplay, procedural animati
 
 ### 🚀 Crash
 
-A dynamic "Crypto/Stock" style game that tests greed and reflexes. Inspired by the *Bustabit* mechanic.
+A dynamic "Crypto/Stock" style game that tests greed and reflexes.
 
 **Key Features:**
-* **Bustabit-like Algorithm:** The crash point is generated using a proven algorithm based on *Inverse Probability Distribution*.
+* **Algorithm:** The crash point is generated using an *Inverse Probability Distribution* approach.
 * **Auto Cashout:** A system allowing players to set an automatic cashout at a specific multiplier.
 * **Multiplier System:** Exponential growth of the chart value (`growth_speed`) simulating a market "pump".
 * **Visualization:** Dynamic chart rendering using polygons with gradient filling.
@@ -139,7 +139,7 @@ The project maintains a clean file structure by separating logic from assets:
 ## 📚 Credits & License
 
 ### License
-This project is available under the **AGPL-3.0** license.
+This project is available under the **MIT** license.
 
 Copyright © 2025 **Adrian Paternoga**, **Adam Zalewski**, **Filip Liskowski**, **Miłosz Kiedrzyński**, **Patryk Iżbicki**, **Borys Kaczka**.
 
@@ -148,9 +148,7 @@ The software is provided "as is", without warranty of any kind. You are free to 
 ### Resources & Tools
 
 **1. Crash Game:**
-* **Algorithm:** The `_generate_crash_point` function is implemented based on the open-source code of **Bustabit** (Inverse Probability Distribution).
-    * **License:** Bustabit v1-webserver is licensed under **AGPL-3.0**.
-    * [Bustabit Repository Link](https://github.com/bustabit/v1-webserver)
+* **Algorithm:** The `_generate_crash_point` function uses an *Inverse Probability Distribution* approach.
 
 **2. Audio:**
 * **Background Music:** Tracks released under **Public Domain (CC0)** license – no attribution required.
