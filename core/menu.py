@@ -85,167 +85,163 @@ class Menu:
         }
 
     def update(self):
-        event = pygame.event.poll()
-
-        if event.type == pygame.QUIT:
-            return "EXIT_APP"
-
-        # --- MENU ---
-        if self.state == "MENU":
+        # 1. Animacje (niezależne od zdarzeń)
+        if self.state in ["MENU", "GRY"]:
             self.logo_scale = 1.0 + 0.1 * math.sin(pygame.time.get_ticks() * 0.0035)
-            if self.btns['start'].is_clicked(event): self.state = "GRY"
-            if self.btns['settings'].is_clicked(event): self.state = "SETTINGS"
-            if self.btns['exit'].is_clicked(event): self.state = "EXIT"
 
-            # sprawdź PyZeton
-            if self.pyzeton_img and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                center = self.pyzeton_rect.center
-                radius = min(self.pyzeton_rect.width, self.pyzeton_rect.height) / 2
-                if (event.pos[0] - center[0]) ** 2 + (event.pos[1] - center[1]) ** 2 <= radius ** 2:
-                    self.wallet.balance = self.wallet.start_money
-                    self.wallet.save()
-                    if self.sm: self.sm.play_sound('click')
+        # 2. Pętla zdarzeń - pobiera WSZYSTKIE zdarzenia z kolejki naraz
+        for event in pygame.event.get():
+            
+            if event.type == pygame.QUIT:
+                return "EXIT_APP"
+
+            # --- MENU ---
+            if self.state == "MENU":
+                if self.btns['start'].is_clicked(event): self.state = "GRY"
+                if self.btns['settings'].is_clicked(event): self.state = "SETTINGS"
+                if self.btns['exit'].is_clicked(event): self.state = "EXIT"
+
+                # sprawdź PyZeton
+                if self.pyzeton_img and event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
+                    if self.pyzeton_rect.collidepoint(event.pos):
+                        # Dokładniejsze sprawdzanie koła
+                        center = self.pyzeton_rect.center
+                        radius = min(self.pyzeton_rect.width, self.pyzeton_rect.height) / 2
+                        if (event.pos[0] - center[0]) ** 2 + (event.pos[1] - center[1]) ** 2 <= radius ** 2:
+                            self.wallet.balance = self.wallet.start_money
+                            self.wallet.save()
+                            if self.sm: self.sm.play_sound('click')
+            
+            elif self.state == "EXIT":
+                if self.btns['yes'].is_clicked(event): return "EXIT_APP" 
+                if self.btns['no'].is_clicked(event): self.state = "MENU"
+
+            elif self.state == "GRY":
+                if self.btns['bj'].is_clicked(event): return "BLACKJACK"
+                if self.btns['cr'].is_clicked(event): return "CRASH"
+                if self.btns['back'].is_clicked(event): self.state = "MENU"
+
+            elif self.state == "SETTINGS":
+                if self.btns['music_m'].is_clicked(event): self.state = "SETTINGS_MUSIC"
+                
+                if self.btns['instr'].is_clicked(event): 
+                    self.state = "INSTRUCTIONS"
+                    self.instr_scroll = 0 
+                    self.is_dragging = False
+
+                if self.btns['credits'].is_clicked(event):
+                    self.state = "CREDITS"
+                    self.credits_scroll = 0
+                    self.is_dragging = False
+
+                if self.btns['back'].is_clicked(event): self.state = "MENU"
+
+            # --- INSTRUKCJE (LOGIKA MYSZKI) ---
+            elif self.state == "INSTRUCTIONS":
+                if self.btns['back_instr'].is_clicked(event):
+                    self.state = "SETTINGS"
+                
+                viewport_y = 100            
+                viewport_h = HEIGHT - 220   
+                scrollbar_x = (WIDTH - 200) + 100 + 10 
+                thumb_height = 60
+                max_scroll = 480
+
+                # 1. Obsługa kółka myszy (Scroll Wheel)
+                if event.type == pygame.MOUSEWHEEL:
+                    self.instr_scroll -= event.y * 30  # Zwiększyłem prędkość scrolla, bo działa płynniej
+
+                # 2. Kliknięcie myszką (złapanie suwaka)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1: 
+                        progress = self.instr_scroll / max_scroll if max_scroll > 0 else 0
+                        thumb_y = viewport_y + progress * (viewport_h - thumb_height)
+                        thumb_rect = pygame.Rect(scrollbar_x - 5, thumb_y, 25, thumb_height) 
+                        
+                        if thumb_rect.collidepoint(event.pos):
+                            self.is_dragging = True
+
+                # 3. Puszczenie myszki
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.is_dragging = False
+
+                # 4. Ruch myszką (gdy trzymamy suwak)
+                elif event.type == pygame.MOUSEMOTION:
+                    if self.is_dragging:
+                        rel_y = event.rel[1]
+                        track_len = viewport_h - thumb_height
+                        if track_len > 0:
+                            scroll_change = (rel_y / track_len) * max_scroll
+                            self.instr_scroll += scroll_change
+
+            # --- CREDITS (LOGIKA MYSZKI) ---
+            elif self.state == "CREDITS":
+                if self.btns['back_instr'].is_clicked(event):
+                    self.state = "SETTINGS"
+                
+                viewport_y = 100            
+                viewport_h = HEIGHT - 220   
+                scrollbar_x = (WIDTH - 200) + 100 + 10 
+                thumb_height = 60
+                max_scroll = 180
+
+                # 1. Scroll Wheel
+                if event.type == pygame.MOUSEWHEEL:
+                    self.credits_scroll -= event.y * 30
+
+                # 2. Kliknięcie (złapanie suwaka)
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:
+                        progress = self.credits_scroll / max_scroll if max_scroll > 0 else 0
+                        thumb_y = viewport_y + progress * (viewport_h - thumb_height)
+                        thumb_rect = pygame.Rect(scrollbar_x - 5, thumb_y, 25, thumb_height) 
+                        
+                        if thumb_rect.collidepoint(event.pos):
+                            self.is_dragging = True
+
+                # 3. Puszczenie myszki
+                elif event.type == pygame.MOUSEBUTTONUP:
+                    self.is_dragging = False
+
+                # 4. Ruch myszką
+                elif event.type == pygame.MOUSEMOTION:
+                    if self.is_dragging:
+                        rel_y = event.rel[1]
+                        track_len = viewport_h - thumb_height
+                        if track_len > 0:
+                            scroll_change = (rel_y / track_len) * max_scroll
+                            self.credits_scroll += scroll_change
+
+            elif self.state == "SETTINGS_MUSIC":
+                if self.btns['back'].is_clicked(event): self.state = "SETTINGS"
+                
+                if self.vol_slider.handle_event(event):
+                    self.sm.set_volume_music(self.vol_slider.value)
+
+                if self.btns['t1'].is_clicked(event):
+                    self.sm.play_music("jazz_playlist.mp3")
+                
+                if self.btns['t2'].is_clicked(event):
+                    self.sm.play_music("lofi_playlist.mp3")
+
+                if self.btns['stop'].is_clicked(event):
+                    if hasattr(self.sm, 'toggle_mute'):
+                        self.sm.toggle_mute()
+                    else:
+                        current = getattr(self.sm, 'is_muted', False)
+                        self.sm.mute(not current)
         
-        elif self.state == "EXIT":
-            if self.btns['yes'].is_clicked(event): return "EXIT_APP" 
-            if self.btns['no'].is_clicked(event): self.state = "MENU"
-
-        elif self.state == "GRY":
-            self.logo_scale = 1.0 + 0.1 * math.sin(pygame.time.get_ticks() * 0.0035)
-            if self.btns['bj'].is_clicked(event): return "BLACKJACK"
-            if self.btns['cr'].is_clicked(event): return "CRASH"
-            if self.btns['back'].is_clicked(event): self.state = "MENU"
-
-        elif self.state == "SETTINGS":
-            if self.btns['music_m'].is_clicked(event): self.state = "SETTINGS_MUSIC"
-            
-            if self.btns['instr'].is_clicked(event): 
-                self.state = "INSTRUCTIONS"
-                self.instr_scroll = 0 
-                self.is_dragging = False
-
-            if self.btns['credits'].is_clicked(event):
-                self.state = "CREDITS"
-                self.credits_scroll = 0
-                self.is_dragging = False
-
-            if self.btns['back'].is_clicked(event): self.state = "MENU"
-
-        # --- INSTRUKCJE (LOGIKA MYSZKI) ---
-        elif self.state == "INSTRUCTIONS":
-            if self.btns['back_instr'].is_clicked(event):
-                self.state = "SETTINGS"
-            
-            # Parametry paska (MUSZĄ BYĆ IDENTYCZNE JAK W screens.py)
-            viewport_y = 100            
-            viewport_h = HEIGHT - 220   
-            
-            scrollbar_x = (WIDTH - 200) + 100 + 10 # Pozycja X paska
-            thumb_height = 60
-            
+        # 3. Logika poza pętlą zdarzeń (np. klampowanie wartości, żeby nie uciekły)
+        # To zapobiega błędom przy bardzo szybkim scrollowaniu
+        if self.state == "INSTRUCTIONS":
             max_scroll = 480
-
-            # 1. Obsługa kółka myszy (Scroll Wheel)
-            if event.type == pygame.MOUSEWHEEL:
-                self.instr_scroll -= event.y * 20 
-
-            # 2. Kliknięcie myszką (złapanie suwaka)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1: # Lewy przycisk
-                    # Obliczamy gdzie aktualnie jest suwak
-                    progress = self.instr_scroll / max_scroll if max_scroll > 0 else 0
-                    thumb_y = viewport_y + progress * (viewport_h - thumb_height)
-                    
-                    # Tworzymy prostokąt suwaka do sprawdzenia kolizji
-                    # (dajemy ciut szerszy obszar X dla wygody klikania)
-                    thumb_rect = pygame.Rect(scrollbar_x - 5, thumb_y, 25, thumb_height) 
-                    
-                    if thumb_rect.collidepoint(event.pos):
-                        self.is_dragging = True
-
-            # 3. Puszczenie myszki
-            elif event.type == pygame.MOUSEBUTTONUP:
-                self.is_dragging = False
-
-            # 4. Ruch myszką (gdy trzymamy suwak)
-            elif event.type == pygame.MOUSEMOTION:
-                if self.is_dragging:
-                    rel_y = event.rel[1] # O ile ruszyła się myszka w pionie
-                    
-                    # Przeliczamy piksele myszki na wartość scrolla
-                    track_len = viewport_h - thumb_height
-                    if track_len > 0:
-                        scroll_change = (rel_y / track_len) * max_scroll
-                        self.instr_scroll += scroll_change
-
-            # Zabezpieczenia zakresu
             if self.instr_scroll < 0: self.instr_scroll = 0
             if self.instr_scroll > max_scroll: self.instr_scroll = max_scroll
 
-        # --- CREDITS (LOGIKA MYSZKI - Kopia logiki Instructions) ---
-        elif self.state == "CREDITS":
-            if self.btns['back_instr'].is_clicked(event):
-                self.state = "SETTINGS"
-            
-            # Parametry paska (MUSZĄ BYĆ IDENTYCZNE JAK W screens.py -> draw_credits)
-            viewport_y = 100            
-            viewport_h = HEIGHT - 220   
-            
-            scrollbar_x = (WIDTH - 200) + 100 + 10 
-            thumb_height = 60
-            # ZMNIEJSZONA WARTOŚĆ SCROLLA
+        if self.state == "CREDITS":
             max_scroll = 180
-
-            # 1. Scroll Wheel
-            if event.type == pygame.MOUSEWHEEL:
-                self.credits_scroll -= event.y * 20 
-
-            # 2. Kliknięcie (złapanie suwaka)
-            elif event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    progress = self.credits_scroll / max_scroll if max_scroll > 0 else 0
-                    thumb_y = viewport_y + progress * (viewport_h - thumb_height)
-                    
-                    thumb_rect = pygame.Rect(scrollbar_x - 5, thumb_y, 25, thumb_height) 
-                    
-                    if thumb_rect.collidepoint(event.pos):
-                        self.is_dragging = True
-
-            # 3. Puszczenie myszki
-            elif event.type == pygame.MOUSEBUTTONUP:
-                self.is_dragging = False
-
-            # 4. Ruch myszką
-            elif event.type == pygame.MOUSEMOTION:
-                if self.is_dragging:
-                    rel_y = event.rel[1]
-                    track_len = viewport_h - thumb_height
-                    if track_len > 0:
-                        scroll_change = (rel_y / track_len) * max_scroll
-                        self.credits_scroll += scroll_change
-
-            # Zabezpieczenia zakresu
             if self.credits_scroll < 0: self.credits_scroll = 0
             if self.credits_scroll > max_scroll: self.credits_scroll = max_scroll
-
-        elif self.state == "SETTINGS_MUSIC":
-            if self.btns['back'].is_clicked(event): self.state = "SETTINGS"
-            
-            if self.vol_slider.handle_event(event):
-                self.sm.set_volume_music(self.vol_slider.value)
-
-            if self.btns['t1'].is_clicked(event):
-                self.sm.play_music("jazz_playlist.mp3")
-            
-            if self.btns['t2'].is_clicked(event):
-                self.sm.play_music("lofi_playlist.mp3")
-
-            if self.btns['stop'].is_clicked(event):
-                if hasattr(self.sm, 'toggle_mute'):
-                    self.sm.toggle_mute()
-                else:
-                    current = getattr(self.sm, 'is_muted', False)
-                    self.sm.mute(not current)
 
         return True
 
