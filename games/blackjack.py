@@ -1,12 +1,8 @@
 import random
-from core.settings import *
-
-# importuje wartosci takie jak BLACK itd. z stworzonego juz pliku settings
 import sys
 import pygame
-
-# potrzebne do ruchu strzaleczek
 import math
+from core.settings import *
 
 # definicje kolorow i rang kart
 suits = ("Hearts", "Diamonds", "Spades", "Clubs")
@@ -524,12 +520,16 @@ class BlackjackGame:
         # PRZYCISKI STRZALEK DO ZMIANY STAWKI (jak w starej wersji)
         panel_y = SCREEN_HEIGHT - 100
         center_y = panel_y + 50
-        btn_x = SCREEN_WIDTH - 160
-
-        # Przycisk UP
-        self.btn_bet_up = Button(" ▲", btn_x, center_y - 32, 30, 30, color=WHITE, text_color=BLACK, sm=self.sm)
-        # Przycisk DOWN
-        self.btn_bet_down = Button(" ▼", btn_x, center_y + 2, 30, 30, color=WHITE, text_color=BLACK, sm=self.sm)
+        
+        # --- ZMIANA WG TWOJEGO KOMITU ---
+        btn_x = SCREEN_WIDTH - 160 # Pozycja przycisków
+        
+        # Przycisk UP - pusty tekst, my go dorysujemy
+        # Przycisk UP - zmieniamy -25 na -35 (wyżej)
+        self.btn_bet_up = Button("", btn_x, center_y - 27, 24, 24, color=WHITE, text_color=BLACK, sm=self.sm)
+        
+        # Przycisk DOWN - zmieniamy +2 na +10 (niżej)
+        self.btn_bet_down = Button("", btn_x, center_y + 5, 24, 24, color=WHITE, text_color=BLACK, sm=self.sm)
 
     def _set_bet(self, amount):
         min_bet = 10
@@ -1214,10 +1214,23 @@ class BlackjackGame:
         if self.state == "betting":
             self.btn_deal.text = "DEAL"
             self.btn_deal.draw(self.screen)
+            
+            # --- ZMIANA WG TWOJEGO KOMITU ---
+            # 1. Rysujemy same przyciski (tło + ramka)
             self.btn_bet_up.draw(self.screen)
             self.btn_bet_down.draw(self.screen)
             
-            # 1. Rysujemy same przyciski (tło + ramka)
+            # 2. Dorysowujemy "ręcznie" trójkąty na środku tych przycisków
+            # Trójkąt W GÓRĘ
+            cx, cy = self.btn_bet_up.rect.centerx, self.btn_bet_up.rect.centery
+            # Punkty: (Góra, Lewy-dół, Prawy-dół)
+            pygame.draw.polygon(self.screen, BLACK, [(cx, cy - 5), (cx - 5, cy + 3), (cx + 5, cy + 3)])
+            
+            # Trójkąt W DÓŁ
+            cx, cy = self.btn_bet_down.rect.centerx, self.btn_bet_down.rect.centery
+            # Punkty: (Dół, Lewa-góra, Prawa-góra)
+            pygame.draw.polygon(self.screen, BLACK, [(cx, cy + 4), (cx - 5, cy - 4), (cx + 5, cy - 4)])
+            
             # Przycisk exit tylko w betting
             self.btn_exit.draw(self.screen)
 
